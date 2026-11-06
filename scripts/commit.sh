@@ -47,16 +47,6 @@ preflight() {
     fail "remote '$REMOTE' nao configurado"
   fi
 
-  # Segredo GHTOKEN usado pelo workflow Publish (secrets.GHTOKEN)
-  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    if gh secret list -R "$(cfg '.repository.owner')/$(cfg '.repository.name')" 2>/dev/null | grep -q '^GHTOKEN\b'; then
-      pass "secret GHTOKEN configurado no GitHub"
-    else
-      fail "secret GHTOKEN nao encontrado (Settings > Secrets and variables > Actions; PAT com write:packages)"
-    fi
-  else
-    echo "  [!] gh CLI ausente/nao autenticado: nao deu para validar o secret GHTOKEN"
-  fi
 
   # Todos os SDKs de fabricantes precisam existir em vendor-sdks/repo (o CI resolve por la)
   local sdk_group_path="${LIB_GROUP_SDK//./\/}" art ver typ missing=0

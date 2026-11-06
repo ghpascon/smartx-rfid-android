@@ -101,15 +101,15 @@ config.json      versão, coordenadas Maven, SDKs
 
 ## Scripts
 
-| Script | O que faz |
-| --- | --- |
-| `scripts/init_repo.sh` | `git init`, remote `origin` (config.json) e commit/tag inicial. |
-| `scripts/commit.sh` | Escolhe major/minor/patch, atualiza `config.json` e `CHANGELOG.md`, commita, cria a tag `vX.Y.Z` e faz push. A tag dispara a publicação. |
-| `scripts/get_remote_repo.sh` | Descarta alterações locais e iguala ao `origin/main`. |
-| `scripts/build.sh` | Testes unitários + AAR release (`--no-tests` para pular testes). |
-| `scripts/publish_sdks.sh` | Regenera `vendor-sdks/repo` (`--remote` também publica no GitHub Packages). |
-| `scripts/publish_local.sh` | Publica lib + SDKs no `~/.m2` para testar sem subir nada. |
-| `scripts/publish.sh` | Publica manualmente no GitHub Packages (`--with-sdks` inclui os SDKs). |
+| Script                       | O que faz                                                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/init_repo.sh`       | `git init`, remote `origin` (config.json) e commit/tag inicial.                                                                          |
+| `scripts/commit.sh`          | Escolhe major/minor/patch, atualiza `config.json` e `CHANGELOG.md`, commita, cria a tag `vX.Y.Z` e faz push. A tag dispara a publicação. |
+| `scripts/get_remote_repo.sh` | Descarta alterações locais e iguala ao `origin/main`.                                                                                    |
+| `scripts/build.sh`           | Testes unitários + AAR release (`--no-tests` para pular testes).                                                                         |
+| `scripts/publish_sdks.sh`    | Regenera `vendor-sdks/repo` (`--remote` também publica no GitHub Packages).                                                              |
+| `scripts/publish_local.sh`   | Publica lib + SDKs no `~/.m2` para testar sem subir nada.                                                                                |
+| `scripts/publish.sh`         | Publica manualmente no GitHub Packages (`--with-sdks` inclui os SDKs).                                                                   |
 
 ## Publicação
 

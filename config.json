@@ -2,7 +2,7 @@
   "library": {
     "groupId": "com.smartx.rfid",
     "artifactId": "smartx-rfid",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "name": "SmartX RFID",
     "description": "Biblioteca Android unificada para leitores RFID UHF (Chainway, Honeywell, Zebra, TSL, X714, XR2, CF-H301)",
     "namespace": "com.smartx.rfid",
@@ -18,12 +18,42 @@
   "vendorSdks": {
     "groupId": "com.smartx.rfid.sdk",
     "artifacts": [
-      { "artifactId": "chainway-deviceapi", "version": "20251103", "file": "DeviceAPI_ver20251103_release.aar", "type": "aar" },
-      { "artifactId": "honeywell-rfid", "version": "1.0.0", "file": "honeywell_rfid_sdk.aar", "type": "aar" },
-      { "artifactId": "zebra-rfidapi3", "version": "2.0.5.275", "file": "rfidapi3lib-2.0.5.275.aar", "type": "aar" },
-      { "artifactId": "tsl-asciiprotocol", "version": "3.5.0", "file": "Rfid.AsciiProtocol-3.5.0-release.aar", "type": "aar" },
-      { "artifactId": "ubx-urfid", "version": "2.4.0307", "file": "URFIDLibrary-v2.4.0307.aar", "type": "aar" },
-      { "artifactId": "ubx-platform", "version": "3.1.221124", "file": "platform_sdk_v3.1.221124.jar", "type": "jar" }
+      {
+        "artifactId": "chainway-deviceapi",
+        "version": "20251103",
+        "file": "DeviceAPI_ver20251103_release.aar",
+        "type": "aar"
+      },
+      {
+        "artifactId": "honeywell-rfid",
+        "version": "1.0.0",
+        "file": "honeywell_rfid_sdk.aar",
+        "type": "aar"
+      },
+      {
+        "artifactId": "zebra-rfidapi3",
+        "version": "2.0.5.275",
+        "file": "rfidapi3lib-2.0.5.275.aar",
+        "type": "aar"
+      },
+      {
+        "artifactId": "tsl-asciiprotocol",
+        "version": "3.5.0",
+        "file": "Rfid.AsciiProtocol-3.5.0-release.aar",
+        "type": "aar"
+      },
+      {
+        "artifactId": "ubx-urfid",
+        "version": "2.4.0307",
+        "file": "URFIDLibrary-v2.4.0307.aar",
+        "type": "aar"
+      },
+      {
+        "artifactId": "ubx-platform",
+        "version": "3.1.221124",
+        "file": "platform_sdk_v3.1.221124.jar",
+        "type": "jar"
+      }
     ]
   }
 }

@@ -112,11 +112,18 @@ class Xtrack(baseUrl: String) {
         )
     }
 
-    /** Busca objetos, opcionalmente filtrando pelos EPCs informados. */
-    suspend fun getObjects(epcs: List<String>? = null): List<Map<String, Any?>> = post(
-        command = "GetObject",
-        objectEpcs = epcs
-    )
+    /** Busca objetos, opcionalmente filtrando pelos EPCs ou IDCODEs informados. */
+    suspend fun getObjects(
+        epcs: List<String>? = null,
+        idCodes: List<String>? = null
+    ): List<Map<String, Any?>> {
+        require(epcs == null || idCodes == null) { "Informe EPCs ou IDCODEs, não ambos" }
+        return post(
+            command = "GetObject",
+            objectEpcs = epcs,
+            objectIdCodes = idCodes
+        )
+    }
 
     /** Busca usuários, opcionalmente filtrando pelo login. As chaves da resposta são minúsculas. */
     suspend fun getUsers(login: String? = null): List<Map<String, Any?>> = post(
@@ -274,7 +281,8 @@ class Xtrack(baseUrl: String) {
     private suspend fun post(
         command: String,
         userLogin: String? = null,
-        objectEpcs: List<String>? = null
+        objectEpcs: List<String>? = null,
+        objectIdCodes: List<String>? = null
     ): List<Map<String, Any?>> {
         val request = JSONObject()
             .put("command", command)
@@ -289,6 +297,14 @@ class Xtrack(baseUrl: String) {
                 }
             }
             request.put("data", JSONObject().put("object", objectFilters))
+        }
+        if (command == "GetObject" && !objectIdCodes.isNullOrEmpty()) {
+            val objectFilters = JSONArray().apply {
+                objectIdCodes.forEach { idCode ->
+                    put(JSONObject().put("object", JSONObject().put("IDCODE", idCode)))
+                }
+            }
+            request.put("data", objectFilters)
         }
 
         val responseBody = executePost(request)

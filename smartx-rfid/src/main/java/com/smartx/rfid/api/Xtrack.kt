@@ -55,6 +55,55 @@ class Xtrack(baseUrl: String) {
         )
     }
 
+    /** Busca todas as categorias e retorna cada uma com as chaves `id` e `name`. */
+    suspend fun getCategories(): List<Map<String, String>> = post("GetCategory").map { category ->
+        mapOf(
+            "id" to (category["id"]?.toString() ?: ""),
+            "name" to (category["name"]?.toString() ?: "")
+        )
+    }
+
+    /** Busca todos os departamentos e retorna cada um com as chaves `id` e `name`. */
+    suspend fun getDepartments(): List<Map<String, String>> = post("GetDepartment").map { department ->
+        mapOf(
+            "id" to (department["id"]?.toString() ?: ""),
+            "name" to (department["name"]?.toString() ?: "")
+        )
+    }
+
+    /** Busca todos os grupos e retorna cada um com as chaves `id` e `name`. */
+    suspend fun getGroups(): List<Map<String, String>> = post("GetGroup").map { group ->
+        mapOf(
+            "id" to (group["id"]?.toString() ?: ""),
+            "name" to (group["name"]?.toString() ?: "")
+        )
+    }
+
+    /** Busca todos os custodians e retorna cada um com as chaves `id` e `name`. */
+    suspend fun getCustodians(): List<Map<String, String>> = post("GetCustodian").map { custodian ->
+        mapOf(
+            "id" to (custodian["id"]?.toString() ?: ""),
+            "name" to (custodian["name"]?.toString() ?: "")
+        )
+    }
+
+    /** Busca todos os centros de custo e retorna cada um com as chaves `id` e `name`. */
+    suspend fun getCostCenters(): List<Map<String, String>> = post("GetCostCenter").map { costCenter ->
+        mapOf(
+            "id" to (costCenter["id"]?.toString() ?: ""),
+            "name" to (costCenter["name"]?.toString() ?: "")
+        )
+    }
+
+    /** Busca modelos de item e retorna `id`, `idcode` no campo `name` e `description`. */
+    suspend fun getItemModels(): List<Map<String, String>> = post("GetItemModel").map { itemModel ->
+        mapOf(
+            "id" to (itemModel["id"]?.toString() ?: ""),
+            "name" to (itemModel["idcode"]?.toString() ?: ""),
+            "description" to (itemModel["description"]?.toString() ?: "")
+        )
+    }
+
     /** Busca todas as roles e retorna cada uma com as chaves `id` e `name`. */
     suspend fun getRoles(): List<Map<String, String>> = post("GetRole").map { role ->
         mapOf(
@@ -88,6 +137,56 @@ class Xtrack(baseUrl: String) {
                 .put("terminal", "ERP")
                 .put("data", data)
         )
+    }
+
+    /** Insere vários objetos. `IDCODE` e `HOMELOCATION_NAME` são obrigatórios. */
+    suspend fun insertObjects(objects: List<Map<String, *>>): Map<String, Any?> {
+        val fields = listOf(
+            "ACTIVE", "IDCODE", "DESCRIPTION", "SERIALNUMBER", "QUANTITY", "ITEMMODEL_IDCODE",
+            "DEPARTMENT_NAME", "CONDITION_NAME", "DISPOSITION_NAME", "LOCATION_NAME",
+            "HOMELOCATION_NAME", "GROUP_NAME", "CUSTODIAN_NAME", "DISPOSAL_NAME",
+            "COSTCENTER_NAME", "CONTAINER_IDCODE", "CATEGORY_NAME", "LATITUDE", "LONGITUDE",
+            "USRDATA1", "USRDATA2", "USRDATA3", "USRDATA4", "USRDATA5", "USRDATA6",
+            "USRDATA7", "USRDATA8", "USRDATA9", "IDETYPE1", "IDECODE1", "IDETYPE2",
+            "IDECODE2", "IDETYPE3", "IDECODE3", "IDETYPE4", "IDECODE4", "IMAGEFILE",
+            "LAST_SEEN", "CREATE_DATE", "DUE_DATE"
+        )
+        val data = JSONArray()
+        objects.forEachIndexed { index, input ->
+            val values = input.entries.associate { (key, value) -> key.uppercase(Locale.ROOT) to value }
+            val idCode = values["IDCODE"]?.toString()?.takeIf { it.isNotBlank() }
+                ?: throw IllegalArgumentException("IDCODE é obrigatório no objeto na posição $index")
+            val homeLocation = values["HOMELOCATION_NAME"]?.toString()?.takeIf { it.isNotBlank() }
+                ?: throw IllegalArgumentException("HOMELOCATION_NAME é obrigatório no objeto na posição $index")
+            val location = values["LOCATION_NAME"]?.toString()?.takeIf { it.isNotBlank() } ?: homeLocation
+
+            val objectData = JSONObject()
+            fields.forEach { field ->
+                val value = when (field) {
+                    "ACTIVE" -> values[field]?.toString() ?: "1"
+                    "IDCODE" -> idCode
+                    "HOMELOCATION_NAME" -> homeLocation
+                    "LOCATION_NAME" -> location
+                    "IDETYPE1" -> "BARCODE"
+                    "IDETYPE2" -> "RFID"
+                    else -> values[field]?.toString() ?: ""
+                }
+                objectData.put(field, value)
+            }
+            data.put(JSONObject().put("object", objectData))
+        }
+
+        val responseBody = executePost(
+            JSONObject()
+                .put("command", "ImportObject")
+                .put("terminal", "ERP")
+                .put("data", data)
+        )
+        val response = normalizeJson(JSONObject(responseBody)) as? Map<*, *>
+            ?: throw IOException("Resposta inválida do Xtrack: objeto JSON esperado")
+        return response.entries.associate { (key, value) ->
+            (key as? String ?: throw IOException("Resposta inválida do Xtrack: chave de resposta inválida")) to value
+        }
     }
 
     /** Altera a condição dos objetos identificados por IDCODE e retorna a resposta (ex.: status). */

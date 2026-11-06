@@ -8,6 +8,8 @@ Tudo que muda entre versões/ambientes (versão, coordenadas Maven, SDKs de fabr
 
 ## Uso
 
+Para integrar a biblioteca em um app Android, consulte o [guia de integração](docs/INTEGRACAO_ANDROID.md) e a [referência da API](docs/REFERENCIA_API.md).
+
 ### 1. Dependência
 
 ```groovy

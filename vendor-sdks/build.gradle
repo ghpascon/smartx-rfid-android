@@ -1,0 +1,44 @@
+// Empacota os AARs/JARs de fabricantes como artefatos Maven versionados.
+// A biblioteca depende deles por coordenadas (ver config.json -> vendorSdks), assim os apps
+// não precisam copiar nenhum AAR.
+//
+//   ./gradlew :vendor-sdks:publishAllPublicationsToLocalRepoRepository    -> vendor-sdks/repo (versionado no git)
+//   ./gradlew :vendor-sdks:publishAllPublicationsToGitHubPackagesRepository -> GitHub Packages
+//   ./gradlew :vendor-sdks:publishToMavenLocal                             -> ~/.m2
+
+plugins {
+    id 'maven-publish'
+}
+
+def cfg = new groovy.json.JsonSlurper().parse(rootProject.file('config.json'))
+
+publishing {
+    publications {
+        cfg.vendorSdks.artifacts.each { sdk ->
+            def pubName = sdk.artifactId.replaceAll('[^A-Za-z0-9]', '_')
+            create(pubName, MavenPublication) {
+                groupId = cfg.vendorSdks.groupId
+                artifactId = sdk.artifactId
+                version = sdk.version
+                pom.packaging = sdk.type
+                artifact(file("aars/${sdk.file}")) {
+                    extension = sdk.type
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'LocalRepo'
+            url = uri("${projectDir}/repo")
+        }
+        maven {
+            name = 'GitHubPackages'
+            url = uri(cfg.repository.mavenUrl)
+            credentials {
+                username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+                password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
+            }
+        }
+    }
+}

@@ -1,0 +1,96 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'maven-publish'
+}
+
+def cfg = new groovy.json.JsonSlurper().parse(rootProject.file('config.json'))
+
+group = cfg.library.groupId
+version = cfg.library.version
+
+android {
+    namespace cfg.library.namespace
+    compileSdk cfg.library.compileSdk
+
+    defaultConfig {
+        minSdk cfg.library.minSdk
+        consumerProguardFiles 'consumer-rules.pro'
+        buildConfigField 'String', 'VERSION', "\"${cfg.library.version}\""
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+
+    publishing {
+        singleVariant('release') {
+            withSourcesJar()
+        }
+    }
+}
+
+dependencies {
+    api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+    implementation 'androidx.core:core-ktx:1.13.1'
+    // Exigido em runtime pelo SDK TSL
+    implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.1.0'
+
+    // SDKs de fabricantes: um artefato Maven por entrada em config.json -> vendorSdks.artifacts.
+    // Para suportar um novo SDK, coloque o AAR em vendor-sdks/aars e adicione a entrada no JSON.
+    cfg.vendorSdks.artifacts.each { sdk ->
+        api "${cfg.vendorSdks.groupId}:${sdk.artifactId}:${sdk.version}"
+    }
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1'
+    testImplementation 'org.mockito:mockito-core:5.12.0'
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                groupId = cfg.library.groupId
+                artifactId = cfg.library.artifactId
+                version = cfg.library.version
+
+                pom {
+                    name = cfg.library.name
+                    description = cfg.library.description
+                    url = cfg.repository.url
+                }
+            }
+        }
+        repositories {
+            maven {
+                name = 'GitHubPackages'
+                url = uri(cfg.repository.mavenUrl)
+                credentials {
+                    username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+                    password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
+                }
+            }
+        }
+    }
+}

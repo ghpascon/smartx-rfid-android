@@ -1,0 +1,12 @@
+build/
+.gradle/
+.kotlin/
+.idea/
+*.iml
+local.properties
+captures/
+.cxx/
+*.log
+.DS_Store
+
+# vendor-sdks/repo É versionado de propósito (repositório Maven dos SDKs de fabricantes)

@@ -43,6 +43,15 @@ class XtrackResponseTest {
     }
 
     @Test
+    fun `filtered GetObject treats string response as no matches`() = withResponse(
+        "\"No objects found\""
+    ) { client ->
+        val objects = runBlocking { client.getObjects(idCodes = listOf("UNKNOWN-ASSET")) }
+
+        assertEquals(emptyList<Map<String, Any?>>(), objects)
+    }
+
+    @Test
     fun `string response to filtered GetUser means no matching user`() = withResponse(
         "\"User not found\""
     ) { client ->
@@ -74,20 +83,38 @@ class XtrackResponseTest {
         )
     }
 
-    private fun withResponse(body: String, test: (Xtrack) -> Unit) {
+    @Test
+    fun `write and move methods parse object responses`() = withResponse(
+        """{"STATUS":"OK"}""",
+        requestCount = 4
+    ) { client ->
+        runBlocking {
+            client.insertLog("test", "unit-test", "message", "INFO")
+            assertEquals(
+                "OK",
+                client.insertObjects(listOf(mapOf("IDCODE" to "ASSET-1", "HOMELOCATION_NAME" to "TEST")))["status"]
+            )
+            assertEquals("OK", client.moveCondition(listOf("ASSET-1"), "GOOD")["status"])
+            assertEquals("OK", client.moveLocation(listOf("ASSET-1"), "TEST")["status"])
+        }
+    }
+
+    private fun withResponse(body: String, requestCount: Int = 1, test: (Xtrack) -> Unit) {
         val server = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
         val serverThread = Thread {
-            server.accept().use { socket ->
-                socket.getInputStream().bufferedReader(StandardCharsets.UTF_8).readLine()
-                val bytes = body.toByteArray(StandardCharsets.UTF_8)
-                val headers = "HTTP/1.1 200 OK\r\n" +
-                    "Content-Type: application/json; charset=utf-8\r\n" +
-                    "Content-Length: ${bytes.size}\r\n" +
-                    "Connection: close\r\n\r\n"
-                socket.getOutputStream().apply {
-                    write(headers.toByteArray(StandardCharsets.UTF_8))
-                    write(bytes)
-                    flush()
+            repeat(requestCount) {
+                server.accept().use { socket ->
+                    socket.getInputStream().bufferedReader(StandardCharsets.UTF_8).readLine()
+                    val bytes = body.toByteArray(StandardCharsets.UTF_8)
+                    val headers = "HTTP/1.1 200 OK\r\n" +
+                        "Content-Type: application/json; charset=utf-8\r\n" +
+                        "Content-Length: ${bytes.size}\r\n" +
+                        "Connection: close\r\n\r\n"
+                    socket.getOutputStream().apply {
+                        write(headers.toByteArray(StandardCharsets.UTF_8))
+                        write(bytes)
+                        flush()
+                    }
                 }
             }
         }

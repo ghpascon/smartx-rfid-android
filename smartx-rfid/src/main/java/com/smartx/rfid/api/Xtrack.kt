@@ -298,7 +298,8 @@ class Xtrack(baseUrl: String) {
 
         val responseBody = executePost(request)
         val response = parseResponse(responseBody)
-        if (command == "GetUser" && (response == null || response is String)) return emptyList()
+        val noMatchStringResponse = command == "GetUser" || command == "GetObject"
+        if (noMatchStringResponse && (response == null || response is String)) return emptyList()
         val responseObject = response as? Map<*, *>
             ?: throw IOException("Resposta inválida do Xtrack: objeto JSON esperado")
         val data = responseObject["data"]
@@ -306,8 +307,8 @@ class Xtrack(baseUrl: String) {
             is List<*> -> data
             // Endpoints Get podem retornar um objeto quando a busca resulta em um registro.
             is Map<*, *> -> listOf(data)
-            // GetUser pode retornar uma mensagem/string ou omitir data quando o login não existe.
-            null, is String -> if (command == "GetUser") emptyList() else {
+            // GetUser/GetObject podem sinalizar ausência de resultados com string ou sem data.
+            null, is String -> if (noMatchStringResponse) emptyList() else {
                 throw IOException("Resposta inválida do Xtrack: campo 'data' ausente ou inválido")
             }
             else -> throw IOException("Resposta inválida do Xtrack: campo 'data' ausente ou inválido")

@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import org.json.JSONTokener
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -125,7 +126,7 @@ class Xtrack(baseUrl: String) {
         )
     }
 
-    /** Busca usuários, opcionalmente filtrando pelo login. As chaves da resposta são minúsculas. */
+    /** Busca usuários; resposta filtrada como objeto vira lista unitária. Chaves em minúsculas. */
     suspend fun getUsers(login: String? = null): List<Map<String, Any?>> = post(
         command = "GetUser",
         userLogin = login
@@ -189,11 +190,7 @@ class Xtrack(baseUrl: String) {
                 .put("terminal", "ERP")
                 .put("data", data)
         )
-        val response = normalizeJson(JSONObject(responseBody)) as? Map<*, *>
-            ?: throw IOException("Resposta inválida do Xtrack: objeto JSON esperado")
-        return response.entries.associate { (key, value) ->
-            (key as? String ?: throw IOException("Resposta inválida do Xtrack: chave de resposta inválida")) to value
-        }
+        return parseResponseObject(responseBody)
     }
 
     /** Altera a condição dos objetos identificados por IDCODE e retorna a resposta (ex.: status). */
@@ -211,11 +208,7 @@ class Xtrack(baseUrl: String) {
                 .put("terminal", "SAPext")
                 .put("data", objects)
         )
-        val response = normalizeJson(JSONObject(responseBody)) as? Map<*, *>
-            ?: throw IOException("Resposta inválida do Xtrack: objeto JSON esperado")
-        return response.entries.associate { (key, value) ->
-            (key as? String ?: throw IOException("Resposta inválida do Xtrack: chave de resposta inválida")) to value
-        }
+        return parseResponseObject(responseBody)
     }
 
     /** Move os objetos identificados por IDCODE para a location informada. */
@@ -233,11 +226,7 @@ class Xtrack(baseUrl: String) {
                 .put("terminal", "SAPext")
                 .put("data", objects)
         )
-        val response = normalizeJson(JSONObject(responseBody)) as? Map<*, *>
-            ?: throw IOException("Resposta inválida do Xtrack: objeto JSON esperado")
-        return response.entries.associate { (key, value) ->
-            (key as? String ?: throw IOException("Resposta inválida do Xtrack: chave de resposta inválida")) to value
-        }
+        return parseResponseObject(responseBody)
     }
 
     /** Autentica o usuário, adiciona `role_name` e retorna também as locations disponíveis. */
@@ -308,10 +297,23 @@ class Xtrack(baseUrl: String) {
         }
 
         val responseBody = executePost(request)
-        val response = normalizeJson(JSONObject(responseBody)) as? Map<*, *>
+        val response = parseResponse(responseBody)
+        if (command == "GetUser" && (response == null || response is String)) return emptyList()
+        val responseObject = response as? Map<*, *>
             ?: throw IOException("Resposta inválida do Xtrack: objeto JSON esperado")
-        val records = response["data"] as? List<*>
-            ?: throw IOException("Resposta inválida do Xtrack: campo 'data' ausente ou inválido")
+        val data = responseObject["data"]
+        val records = when (data) {
+            is List<*> -> data
+            is Map<*, *> -> if (command == "GetUser") listOf(data) else {
+                throw IOException("Resposta inválida do Xtrack: campo 'data' deveria ser uma lista")
+            }
+            // O GetUser retorna um objeto quando filtrado, mas alguns servidores retornam
+            // uma mensagem/string ou omitem data quando o login não existe.
+            null, is String -> if (command == "GetUser") emptyList() else {
+                throw IOException("Resposta inválida do Xtrack: campo 'data' ausente ou inválido")
+            }
+            else -> throw IOException("Resposta inválida do Xtrack: campo 'data' ausente ou inválido")
+        }
 
         return records.mapIndexed { index, item ->
             val record = item as? Map<*, *>
@@ -355,13 +357,34 @@ class Xtrack(baseUrl: String) {
         }
     }
 
+    /** Faz parse de qualquer valor JSON, inclusive respostas primitivas como strings. */
+    private fun parseResponse(responseBody: String): Any? {
+        if (responseBody.isBlank()) {
+            throw IOException("Resposta inválida do Xtrack: corpo JSON vazio")
+        }
+        return try {
+            normalizeJson(JSONTokener(responseBody).nextValue())
+        } catch (error: Exception) {
+            throw IOException("Resposta inválida do Xtrack: JSON malformado", error)
+        }
+    }
+
+    /** Faz parse de uma resposta que deve ser um objeto JSON. */
+    private fun parseResponseObject(responseBody: String): Map<String, Any?> {
+        val response = parseResponse(responseBody) as? Map<*, *>
+            ?: throw IOException("Resposta inválida do Xtrack: objeto JSON esperado")
+        return response.entries.associate { (key, value) ->
+            (key as? String ?: throw IOException("Resposta inválida do Xtrack: chave de resposta inválida")) to value
+        }
+    }
+
     /** Converte objetos/arrays JSON para estruturas Kotlin e normaliza as chaves para minúsculas. */
     private fun normalizeJson(value: Any?): Any? = when (value) {
         is JSONObject -> buildMap {
             val keys = value.keys()
             while (keys.hasNext()) {
                 val key = keys.next()
-                put(key.lowercase(), normalizeJson(value.get(key)))
+                put(key.lowercase(Locale.ROOT), normalizeJson(value.get(key)))
             }
         }
         is JSONArray -> (0 until value.length()).map { normalizeJson(value.get(it)) }

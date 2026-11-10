@@ -266,7 +266,7 @@ class Xtrack(baseUrl: String) {
         }
     }
 
-    /** Executa um POST Xtrack e retorna os registros de `data` com as chaves normalizadas. */
+    /** Executa um POST Xtrack e normaliza `data` de todos os endpoints Get para uma lista. */
     private suspend fun post(
         command: String,
         userLogin: String? = null,
@@ -304,11 +304,9 @@ class Xtrack(baseUrl: String) {
         val data = responseObject["data"]
         val records = when (data) {
             is List<*> -> data
-            is Map<*, *> -> if (command == "GetUser") listOf(data) else {
-                throw IOException("Resposta inválida do Xtrack: campo 'data' deveria ser uma lista")
-            }
-            // O GetUser retorna um objeto quando filtrado, mas alguns servidores retornam
-            // uma mensagem/string ou omitem data quando o login não existe.
+            // Endpoints Get podem retornar um objeto quando a busca resulta em um registro.
+            is Map<*, *> -> listOf(data)
+            // GetUser pode retornar uma mensagem/string ou omitir data quando o login não existe.
             null, is String -> if (command == "GetUser") emptyList() else {
                 throw IOException("Resposta inválida do Xtrack: campo 'data' ausente ou inválido")
             }
@@ -363,7 +361,14 @@ class Xtrack(baseUrl: String) {
             throw IOException("Resposta inválida do Xtrack: corpo JSON vazio")
         }
         return try {
-            normalizeJson(JSONTokener(responseBody).nextValue())
+            val tokener = JSONTokener(responseBody)
+            val value = tokener.nextValue()
+            if (tokener.nextClean() != '\u0000') {
+                throw IOException("Resposta inválida do Xtrack: conteúdo extra após o JSON")
+            }
+            normalizeJson(value)
+        } catch (error: IOException) {
+            throw error
         } catch (error: Exception) {
             throw IOException("Resposta inválida do Xtrack: JSON malformado", error)
         }

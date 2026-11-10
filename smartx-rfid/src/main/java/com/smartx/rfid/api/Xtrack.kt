@@ -96,13 +96,29 @@ class Xtrack(baseUrl: String) {
         )
     }
 
-    /** Busca modelos de item e retorna `id`, `idcode` no campo `name` e `description`. */
+    /** Busca modelos de item e retorna também os campos de categoria disponíveis na resposta. */
     suspend fun getItemModels(): List<Map<String, String>> = post("GetItemModel").map { itemModel ->
-        mapOf(
-            "id" to (itemModel["id"]?.toString() ?: ""),
-            "name" to (itemModel["idcode"]?.toString() ?: ""),
-            "description" to (itemModel["description"]?.toString() ?: "")
-        )
+        buildMap {
+            itemModel.forEach { (key, value) ->
+                put(key.lowercase(Locale.ROOT), value?.toString() ?: "")
+            }
+            put("id", itemModel["id"]?.toString() ?: "")
+            put("name", itemModel["idcode"]?.toString() ?: "")
+            put("description", itemModel["description"]?.toString() ?: "")
+            put(
+                "category_id",
+                itemModel["category_id"]?.toString()
+                    ?: itemModel["categoryid"]?.toString()
+                    ?: itemModel["category"]?.toString()
+                    ?: ""
+            )
+            put(
+                "category_name",
+                itemModel["category_name"]?.toString()
+                    ?: itemModel["categoryname"]?.toString()
+                    ?: ""
+            )
+        }
     }
 
     /** Busca todas as roles e retorna cada uma com as chaves `id` e `name`. */
@@ -111,6 +127,29 @@ class Xtrack(baseUrl: String) {
             "id" to (role["id"]?.toString() ?: ""),
             "name" to (role["name"]?.toString() ?: "")
         )
+    }
+
+    /** Busca disposições paginadas ou filtra por nome; retorna `id` e `name`. */
+    suspend fun getDispositions(
+        name: String? = null,
+        offset: Int = 0,
+        limit: Int = 1000
+    ): List<Map<String, String>> {
+        require(offset >= 0) { "offset não pode ser negativo" }
+        require(limit > 0) { "limit deve ser maior que zero" }
+        require(name == null || name.isNotBlank()) { "name não pode ser vazio" }
+
+        return post(
+            command = "GetDisposition",
+            dispositionName = name?.trim(),
+            offset = offset,
+            limit = limit
+        ).map { disposition ->
+            mapOf(
+                "id" to (disposition["id"]?.toString() ?: ""),
+                "name" to (disposition["name"]?.toString() ?: "")
+            )
+        }
     }
 
     /** Busca objetos, opcionalmente filtrando pelos EPCs ou IDCODEs informados. */
@@ -271,7 +310,10 @@ class Xtrack(baseUrl: String) {
         command: String,
         userLogin: String? = null,
         objectEpcs: List<String>? = null,
-        objectIdCodes: List<String>? = null
+        objectIdCodes: List<String>? = null,
+        dispositionName: String? = null,
+        offset: Int = 0,
+        limit: Int = 1000
     ): List<Map<String, Any?>> {
         val request = JSONObject()
             .put("command", command)
@@ -294,6 +336,16 @@ class Xtrack(baseUrl: String) {
                 }
             }
             request.put("data", objectFilters)
+        }
+        if (command == "GetDisposition") {
+            val data = JSONObject()
+            if (dispositionName != null) {
+                data.put("disposition", JSONObject().put("NAME", dispositionName))
+            } else {
+                data.put("offset", offset)
+                    .put("limit", limit)
+            }
+            request.put("data", data)
         }
 
         val responseBody = executePost(request)

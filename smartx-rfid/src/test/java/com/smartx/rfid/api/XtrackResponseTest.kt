@@ -1,14 +1,16 @@
 package com.smartx.rfid.api
 
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicReference
 
 class XtrackResponseTest {
 
@@ -30,6 +32,42 @@ class XtrackResponseTest {
         val users = runBlocking { client.getUsers() }
 
         assertEquals(listOf("ADMIN", "FELIPE"), users.map { it["login"] })
+    }
+
+    @Test
+    fun `GetDisposition requests default pagination and maps records`() {
+        val requestBody = AtomicReference<String>()
+        withResponse(
+            """{"data":[{"ID":"3","NAME":"ROUPA"}]}""",
+            requestObserver = requestBody::set
+        ) { client ->
+            val dispositions = runBlocking { client.getDispositions() }
+
+            assertEquals(listOf(mapOf("id" to "3", "name" to "ROUPA")), dispositions)
+        }
+
+        val data = JSONObject(requestBody.get()).getJSONObject("data")
+        assertEquals(0, data.getInt("offset"))
+        assertEquals(1000, data.getInt("limit"))
+    }
+
+    @Test
+    fun `GetDisposition filters by exact name`() {
+        val requestBody = AtomicReference<String>()
+        withResponse(
+            """{"data":{"ID":"3","NAME":"ROUPA"}}""",
+            requestObserver = requestBody::set
+        ) { client ->
+            val dispositions = runBlocking { client.getDispositions(name = "ROUPA") }
+
+            assertEquals(listOf(mapOf("id" to "3", "name" to "ROUPA")), dispositions)
+        }
+
+        val request = JSONObject(requestBody.get())
+        val data = request.getJSONObject("data")
+        assertEquals("ROUPA", data.getJSONObject("disposition").getString("NAME"))
+        assertFalse(data.has("offset"))
+        assertFalse(data.has("limit"))
     }
 
     @Test
@@ -99,12 +137,37 @@ class XtrackResponseTest {
         }
     }
 
-    private fun withResponse(body: String, requestCount: Int = 1, test: (Xtrack) -> Unit) {
+    private fun withResponse(
+        body: String,
+        requestCount: Int = 1,
+        requestObserver: ((String) -> Unit)? = null,
+        test: (Xtrack) -> Unit
+    ) {
         val server = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
         val serverThread = Thread {
             repeat(requestCount) {
                 server.accept().use { socket ->
-                    socket.getInputStream().bufferedReader(StandardCharsets.UTF_8).readLine()
+                    val input = socket.getInputStream()
+                    val requestHeaders = ByteArrayOutputStream()
+                    var matchedHeaderTerminator = 0
+                    while (matchedHeaderTerminator < 4) {
+                        val byte = input.read()
+                        if (byte == -1) break
+                        requestHeaders.write(byte)
+                        matchedHeaderTerminator = when {
+                            matchedHeaderTerminator == 0 && byte == '\r'.code -> 1
+                            matchedHeaderTerminator == 1 && byte == '\n'.code -> 2
+                            matchedHeaderTerminator == 2 && byte == '\r'.code -> 3
+                            matchedHeaderTerminator == 3 && byte == '\n'.code -> 4
+                            byte == '\r'.code -> 1
+                            else -> 0
+                        }
+                    }
+                    val headerText = requestHeaders.toString(StandardCharsets.UTF_8.name())
+                    val contentLength = Regex("(?im)^Content-Length:\\s*(\\d+)")
+                        .find(headerText)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+                    val requestBody = input.readNBytes(contentLength)
+                    requestObserver?.invoke(String(requestBody, StandardCharsets.UTF_8))
                     val bytes = body.toByteArray(StandardCharsets.UTF_8)
                     val headers = "HTTP/1.1 200 OK\r\n" +
                         "Content-Type: application/json; charset=utf-8\r\n" +

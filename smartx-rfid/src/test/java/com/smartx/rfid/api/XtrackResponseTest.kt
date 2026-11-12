@@ -35,6 +35,19 @@ class XtrackResponseTest {
     }
 
     @Test
+    fun `catalog methods preserve additional API fields and device aliases`() = withResponse(
+        """{"data":[{"ID":"7","UID":"RFID-7","NAME":"Leitor","ACTIVE":"1","EXTRA":"kept"}]}"""
+    ) { client ->
+        val device = runBlocking { client.getDevices() }.single()
+
+        assertEquals("7", device["id"])
+        assertEquals("RFID-7", device["name"])
+        assertEquals("Leitor", device["description"])
+        assertEquals("1", device["active"])
+        assertEquals("kept", device["extra"])
+    }
+
+    @Test
     fun `GetDisposition requests default pagination and maps records`() {
         val requestBody = AtomicReference<String>()
         withResponse(
@@ -158,10 +171,32 @@ class XtrackResponseTest {
         }
 
         val request = JSONObject(requestBody.get())
-        val objectData = request.getJSONArray("data")
-            .getJSONObject(0)
-            .getJSONObject("object")
+        val objectData = request.getJSONObject("data").getJSONObject("object")
         assertEquals("aGVsbG8=", objectData.getString("IMAGEDATA"))
+        assertEquals("1", objectData.getString("QUANTITY"))
+    }
+
+    @Test
+    fun `insertObjects keeps array payload when importing multiple objects`() {
+        val requestBody = AtomicReference<String>()
+        withResponse(
+            """{"STATUS":"OK"}""",
+            requestObserver = requestBody::set
+        ) { client ->
+            runBlocking {
+                client.insertObjects(
+                    listOf(
+                        mapOf("IDCODE" to "ASSET-1", "HOMELOCATION_NAME" to "TEST"),
+                        mapOf("IDCODE" to "ASSET-2", "HOMELOCATION_NAME" to "TEST")
+                    )
+                )
+            }
+        }
+
+        val data = JSONObject(requestBody.get()).getJSONArray("data")
+        assertEquals(2, data.length())
+        assertEquals("ASSET-1", data.getJSONObject(0).getJSONObject("object").getString("IDCODE"))
+        assertEquals("ASSET-2", data.getJSONObject(1).getJSONObject("object").getString("IDCODE"))
     }
 
     private fun withResponse(

@@ -33,69 +33,42 @@ class Xtrack(baseUrl: String) {
 
     /** Busca todas as locations e retorna cada uma com as chaves `id` e `name`. */
     suspend fun getLocations(): List<Map<String, String>> = post("GetLocation").map { location ->
-        mapOf(
-            "id" to (location["id"]?.toString() ?: ""),
-            "name" to (location["name"]?.toString() ?: ""),
-            "department" to (location["department"]?.toString() ?: ""),
-            "usr1" to (location["usr1"]?.toString() ?: "")
-        )
+        location.toStringMap()
     }
 
     /** Busca devices; `uid` é retornado como `name` e o campo `name` como `description`. */
     suspend fun getDevices(): List<Map<String, String>> = post("GetDevice").map { device ->
-        mapOf(
-            "id" to (device["id"]?.toString() ?: ""),
-            "name" to (device["uid"]?.toString() ?: ""),
-            "description" to (device["name"]?.toString() ?: "")
-        )
+        device.toStringMap(mapOf("name" to "uid", "description" to "name"))
     }
 
     /** Busca todas as conditions e retorna cada uma com as chaves `id` e `name`. */
     suspend fun getConditions(): List<Map<String, String>> = post("GetCondition").map { condition ->
-        mapOf(
-            "id" to (condition["id"]?.toString() ?: ""),
-            "name" to (condition["name"]?.toString() ?: "")
-        )
+        condition.toStringMap()
     }
 
     /** Busca todas as categorias e retorna cada uma com as chaves `id` e `name`. */
     suspend fun getCategories(): List<Map<String, String>> = post("GetCategory").map { category ->
-        mapOf(
-            "id" to (category["id"]?.toString() ?: ""),
-            "name" to (category["name"]?.toString() ?: "")
-        )
+        category.toStringMap()
     }
 
     /** Busca todos os departamentos e retorna cada um com as chaves `id` e `name`. */
     suspend fun getDepartments(): List<Map<String, String>> = post("GetDepartment").map { department ->
-        mapOf(
-            "id" to (department["id"]?.toString() ?: ""),
-            "name" to (department["name"]?.toString() ?: "")
-        )
+        department.toStringMap()
     }
 
     /** Busca todos os grupos e retorna cada um com as chaves `id` e `name`. */
     suspend fun getGroups(): List<Map<String, String>> = post("GetGroup").map { group ->
-        mapOf(
-            "id" to (group["id"]?.toString() ?: ""),
-            "name" to (group["name"]?.toString() ?: "")
-        )
+        group.toStringMap()
     }
 
     /** Busca todos os custodians e retorna cada um com as chaves `id` e `name`. */
     suspend fun getCustodians(): List<Map<String, String>> = post("GetCustodian").map { custodian ->
-        mapOf(
-            "id" to (custodian["id"]?.toString() ?: ""),
-            "name" to (custodian["name"]?.toString() ?: "")
-        )
+        custodian.toStringMap()
     }
 
     /** Busca todos os centros de custo e retorna cada um com as chaves `id` e `name`. */
     suspend fun getCostCenters(): List<Map<String, String>> = post("GetCostCenter").map { costCenter ->
-        mapOf(
-            "id" to (costCenter["id"]?.toString() ?: ""),
-            "name" to (costCenter["name"]?.toString() ?: "")
-        )
+        costCenter.toStringMap()
     }
 
     /** Busca modelos de item e retorna também os campos de categoria disponíveis na resposta. */
@@ -126,10 +99,7 @@ class Xtrack(baseUrl: String) {
 
     /** Busca todas as roles e retorna cada uma com as chaves `id` e `name`. */
     suspend fun getRoles(): List<Map<String, String>> = post("GetRole").map { role ->
-        mapOf(
-            "id" to (role["id"]?.toString() ?: ""),
-            "name" to (role["name"]?.toString() ?: "")
-        )
+        role.toStringMap()
     }
 
     /** Busca disposições paginadas ou filtra por nome; retorna `id` e `name`. */
@@ -148,12 +118,16 @@ class Xtrack(baseUrl: String) {
             offset = offset,
             limit = limit
         ).map { disposition ->
-            mapOf(
-                "id" to (disposition["id"]?.toString() ?: ""),
-                "name" to (disposition["name"]?.toString() ?: "")
-            )
+            disposition.toStringMap()
         }
     }
+
+    /** Mantém todos os campos recebidos e adiciona aliases apontando para as chaves de origem. */
+    private fun Map<String, Any?>.toStringMap(aliases: Map<String, String> = emptyMap()): Map<String, String> =
+        buildMap {
+            this@toStringMap.forEach { (key, value) -> put(key, value?.toString() ?: "") }
+            aliases.forEach { (alias, source) -> put(alias, this@toStringMap[source]?.toString() ?: "") }
+        }
 
     /** Busca objetos, opcionalmente filtrando pelos EPCs ou IDCODEs informados. */
     suspend fun getObjects(
@@ -201,7 +175,7 @@ class Xtrack(baseUrl: String) {
             "IDECODE2", "IDETYPE3", "IDECODE3", "IDETYPE4", "IDECODE4", "IMAGEFILE", "IMAGEDATA",
             "LAST_SEEN", "CREATE_DATE", "DUE_DATE"
         )
-        val data = JSONArray()
+        val importedObjects = mutableListOf<JSONObject>()
         objects.forEachIndexed { index, input ->
             val values = input.entries.associate { (key, value) -> key.uppercase(Locale.ROOT) to value }
             val idCode = values["IDCODE"]?.toString()?.takeIf { it.isNotBlank() }
@@ -214,6 +188,7 @@ class Xtrack(baseUrl: String) {
             fields.forEach { field ->
                 val value = when (field) {
                     "ACTIVE" -> values[field]?.toString() ?: "1"
+                    "QUANTITY" -> values[field]?.toString() ?: "1"
                     "IDCODE" -> idCode
                     "HOMELOCATION_NAME" -> homeLocation
                     "LOCATION_NAME" -> location
@@ -223,7 +198,16 @@ class Xtrack(baseUrl: String) {
                 }
                 objectData.put(field, value)
             }
-            data.put(JSONObject().put("object", objectData))
+            importedObjects += objectData
+        }
+
+        val data: Any = when (importedObjects.size) {
+            1 -> JSONObject().put("object", importedObjects.single())
+            else -> JSONArray().apply {
+                importedObjects.forEach { objectData ->
+                    put(JSONObject().put("object", objectData))
+                }
+            }
         }
 
         val responseBody = executePost(

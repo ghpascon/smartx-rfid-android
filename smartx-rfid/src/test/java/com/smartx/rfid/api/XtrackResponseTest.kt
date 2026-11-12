@@ -137,6 +137,33 @@ class XtrackResponseTest {
         }
     }
 
+    @Test
+    fun `insertObjects sends image Base64 as IMAGEDATA`() {
+        val requestBody = AtomicReference<String>()
+        withResponse(
+            """{"STATUS":"OK"}""",
+            requestObserver = requestBody::set
+        ) { client ->
+            runBlocking {
+                client.insertObjects(
+                    listOf(
+                        mapOf(
+                            "IDCODE" to "ASSET-IMAGE-1",
+                            "HOMELOCATION_NAME" to "TEST",
+                            "IMAGEDATA" to "aGVsbG8="
+                        )
+                    )
+                )
+            }
+        }
+
+        val request = JSONObject(requestBody.get())
+        val objectData = request.getJSONArray("data")
+            .getJSONObject(0)
+            .getJSONObject("object")
+        assertEquals("aGVsbG8=", objectData.getString("IMAGEDATA"))
+    }
+
     private fun withResponse(
         body: String,
         requestCount: Int = 1,

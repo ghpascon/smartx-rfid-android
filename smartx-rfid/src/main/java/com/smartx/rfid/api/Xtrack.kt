@@ -35,7 +35,8 @@ class Xtrack(baseUrl: String) {
     suspend fun getLocations(): List<Map<String, String>> = post("GetLocation").map { location ->
         mapOf(
             "id" to (location["id"]?.toString() ?: ""),
-            "name" to (location["name"]?.toString() ?: "")
+            "name" to (location["name"]?.toString() ?: ""),
+            "aliasname" to (location["aliasname"]?.toString() ?: "")
         )
     }
 
@@ -195,7 +196,7 @@ class Xtrack(baseUrl: String) {
             "COSTCENTER_NAME", "CONTAINER_IDCODE", "CATEGORY_NAME", "LATITUDE", "LONGITUDE",
             "USRDATA1", "USRDATA2", "USRDATA3", "USRDATA4", "USRDATA5", "USRDATA6",
             "USRDATA7", "USRDATA8", "USRDATA9", "IDETYPE1", "IDECODE1", "IDETYPE2",
-            "IDECODE2", "IDETYPE3", "IDECODE3", "IDETYPE4", "IDECODE4", "IMAGEFILE",
+            "IDECODE2", "IDETYPE3", "IDECODE3", "IDETYPE4", "IDECODE4", "IMAGEFILE", "IMAGEDATA",
             "LAST_SEEN", "CREATE_DATE", "DUE_DATE"
         )
         val data = JSONArray()

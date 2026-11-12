@@ -36,7 +36,8 @@ class Xtrack(baseUrl: String) {
         mapOf(
             "id" to (location["id"]?.toString() ?: ""),
             "name" to (location["name"]?.toString() ?: ""),
-            "aliasname" to (location["aliasname"]?.toString() ?: "")
+            "aliasname" to (location["aliasname"]?.toString() ?: ""),
+            "department" to (location["department"]?.toString() ?: "")
         )
     }
 

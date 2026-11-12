@@ -120,6 +120,7 @@ class Xtrack(baseUrl: String) {
                     ?: itemModel["categoryname"]?.toString()
                     ?: ""
             )
+            put("usr1", itemModel["usr1"]?.toString() ?: "")
         }
     }
 

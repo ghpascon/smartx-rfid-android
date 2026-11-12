@@ -2,7 +2,7 @@
   "library": {
     "groupId": "com.smartx.rfid",
     "artifactId": "smartx-rfid",
-    "version": "1.2.9",
+    "version": "1.2.10",
     "name": "SmartX RFID",
     "description": "Biblioteca Android unificada para leitores RFID UHF (Chainway, Honeywell, Zebra, TSL, X714, XR2, CF-H301)",
     "namespace": "com.smartx.rfid",

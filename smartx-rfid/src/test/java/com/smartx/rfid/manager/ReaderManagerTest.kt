@@ -139,7 +139,7 @@ class ReaderManagerTest {
     fun `P80 reader declares the Chainway scan keys as trigger`() {
         val caps = com.smartx.rfid.devices.p80.P80Reader().capabilities
         assertTrue(caps.usesKeyEventTrigger)
-        assertTrue(caps.triggerKeyCodes.containsAll(listOf(291, 293, 294, 295)))
+        assertTrue(caps.triggerKeyCodes.containsAll(listOf(291, 293, 294, 295, 311)))
     }
 
     @Test

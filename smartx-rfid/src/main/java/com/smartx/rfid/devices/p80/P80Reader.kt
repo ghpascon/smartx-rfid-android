@@ -25,10 +25,10 @@ class P80Reader : IRfidReader {
     companion object {
         /**
          * Teclas de scan dos handhelds Chainway: LEFT_TRIGGER=291, RIGHT_TRIGGER=293,
-         * CENTER_TRIGGER=294, PTT=295 (doc "Sistema"), mais F1=131, 139 e 280, usados
-         * por outros modelos da linha e por mapeamentos de tecla do sistema.
+         * CENTER_TRIGGER=294, PTT=295 (doc "Sistema"), F1=131, 139 e 280 (outros modelos
+         * Chainway) e 311, o keycode medido no P80 real (scancode 249 do mtk-kpd).
          */
-        val TRIGGER_KEY_CODES: Set<Int> = setOf(131, 139, 280, 291, 293, 294, 295)
+        val TRIGGER_KEY_CODES: Set<Int> = setOf(131, 139, 280, 291, 293, 294, 295, 311)
 
         /** Identificadores de função do keyboard emulator (ScannerUtility). */
         private const val FUNCTION_2D = 2

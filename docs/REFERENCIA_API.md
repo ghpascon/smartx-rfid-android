@@ -19,6 +19,7 @@ Os IDs são estáveis e podem ser usados em `ReaderRegistry.create(...)` e `Read
 | ID          | Leitor                 |
 | ----------- | ---------------------- |
 | `C72`       | Chainway C72           |
+| `P80`       | Chainway P80           |
 | `CF-H301`   | CF-H301                |
 | `IH25`      | Honeywell IH25         |
 | `ZEBRA`     | Zebra                  |

@@ -2,9 +2,9 @@
   "library": {
     "groupId": "com.smartx.rfid",
     "artifactId": "smartx-rfid",
-    "version": "1.2.12",
+    "version": "1.3.0",
     "name": "SmartX RFID",
-    "description": "Biblioteca Android unificada para leitores RFID UHF (Chainway, Honeywell, Zebra, TSL, X714, XR2, CF-H301)",
+    "description": "Biblioteca Android unificada para leitores RFID UHF (Chainway C72/P80, Honeywell, Zebra, TSL, X714, XR2, CF-H301)",
     "namespace": "com.smartx.rfid",
     "minSdk": 26,
     "compileSdk": 34
@@ -20,8 +20,8 @@
     "artifacts": [
       {
         "artifactId": "chainway-deviceapi",
-        "version": "20251103",
-        "file": "DeviceAPI_ver20251103_release.aar",
+        "version": "2.0.3",
+        "file": "DeviceAPI_V2.0.3_20260313.aar",
         "type": "aar"
       },
       {

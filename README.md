@@ -2,7 +2,7 @@
 
 Biblioteca Android unificada para leitores RFID UHF. O app conversa com **uma única API** (`ReaderManager` + `IRfidReader`) e novos leitores são adicionados **somente aqui**, sem alterar os apps.
 
-Leitores suportados: `C72` (Chainway), `CF-H301`, `IH25` (Honeywell), `ZEBRA`, `TSL1128`, `X714` (UBX), `XR2`.
+Leitores suportados: `C72` (Chainway), `P80` (Chainway), `CF-H301`, `IH25` (Honeywell), `ZEBRA`, `TSL1128`, `X714` (UBX), `XR2`.
 
 Tudo que muda entre versões/ambientes (versão, coordenadas Maven, SDKs de fabricantes, repositório) fica em [config.json](config.json).
 
@@ -61,7 +61,7 @@ manager.disconnect()
 
 ### 4. Gatilho físico
 
-Leitores com `capabilities.usesKeyEventTrigger` recebem o gatilho como `KeyEvent` (ex.: C72). No `Activity`:
+Leitores com `capabilities.usesKeyEventTrigger` recebem o gatilho como `KeyEvent` (ex.: C72, P80). No `Activity`:
 
 ```kotlin
 override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
@@ -86,7 +86,7 @@ smartx-rfid/src/main/java/com/smartx/rfid/
 ├── manager/     ReaderManager, ReaderManagerState, ReaderRegistry
 ├── tags/        TagCollector (dedup, throttle), TagFilter
 ├── ble/         BleScanner, BlePermissions
-└── devices/     um pacote por leitor (c72, cfh301, ih25, tsl1128, x714, xr2, zebra)
+└── devices/     um pacote por leitor (c72, cfh301, ih25, p80, tsl1128, x714, xr2, zebra)
 vendor-sdks/     AAR/JAR de fabricantes empacotados como artefatos Maven
 scripts/         commit, build, publicação
 config.json      versão, coordenadas Maven, SDKs

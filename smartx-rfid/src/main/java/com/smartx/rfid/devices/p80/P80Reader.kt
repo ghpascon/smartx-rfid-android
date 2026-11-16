@@ -22,9 +22,25 @@ import kotlinx.coroutines.withContext
  */
 class P80Reader : IRfidReader {
 
+    companion object {
+        /**
+         * Teclas de scan dos handhelds Chainway: LEFT_TRIGGER=291, RIGHT_TRIGGER=293,
+         * CENTER_TRIGGER=294, PTT=295 (doc "Sistema"), mais F1=131, 139 e 280, usados
+         * por outros modelos da linha e por mapeamentos de tecla do sistema.
+         */
+        val TRIGGER_KEY_CODES: Set<Int> = setOf(131, 139, 280, 291, 293, 294, 295)
+
+        /** Identificadores de função do keyboard emulator (ScannerUtility). */
+        private const val FUNCTION_2D = 2
+        private const val FUNCTION_UHF = 3
+    }
+
     override val readerId: String = "P80"
     override val displayName: String = "Chainway P80"
-    override val capabilities = ReaderCapabilities(usesKeyEventTrigger = true)
+    override val capabilities = ReaderCapabilities(
+        usesKeyEventTrigger = true,
+        triggerKeyCodes = TRIGGER_KEY_CODES
+    )
 
     private val TAG = "P80Reader"
 
@@ -156,27 +172,51 @@ class P80Reader : IRfidReader {
     }
 
     override fun onTriggerPressed(): Boolean {
+        Log.d(TAG, "onTriggerPressed estado=${_connectionState.value} inventario=$_isInventorying")
         if (_connectionState.value != ReaderConnectionState.CONNECTED) return false
-        if (!_isInventorying) startInventory()
+        if (!_isInventorying) {
+            val ok = startInventory()
+            Log.i(TAG, "Gatilho: startInventory=$ok")
+        }
         return true
     }
 
     override fun onTriggerReleased(): Boolean {
-        if (_isInventorying) stopInventory()
+        Log.d(TAG, "onTriggerReleased inventario=$_isInventorying")
+        if (_isInventorying) {
+            val ok = stopInventory()
+            Log.i(TAG, "Gatilho: stopInventory=$ok")
+        }
         return true
     }
 
     /**
-     * Remove as teclas de scan do keyboard emulator (tipo 0 = barcode, 3 = UHF), usando o
-     * keycode 1 (sem função), para que o botão físico seja tratado só pelo app.
+     * Configura o keyboard emulator do sistema (app com.rscja.scanner) para não interceptar o
+     * botão físico: desliga a chave geral e as funções de scan/UHF e troca as teclas de scan
+     * (tipo 0 = barcode, 3 = UHF) pelo keycode 1 (sem função). O SDK fala com o emulator por
+     * broadcast; cada passo é independente e falhas só geram log.
      */
     private fun releaseScanKeys(context: Context) {
-        try {
-            val scanner = ScannerUtility.getScannerInerface()
-            scanner.setScanKey(context, 0, intArrayOf(1, 1, 1, 1))
-            scanner.setScanKey(context, 3, intArrayOf(1, 1))
+        val scanner = try {
+            ScannerUtility.getScannerInerface()
         } catch (e: Throwable) {
-            Log.w(TAG, "Não foi possível liberar as teclas de scan: ${e.message}")
+            Log.w(TAG, "Keyboard emulator indisponível: ${e.message}")
+            return
+        }
+        val steps: List<Pair<String, () -> Unit>> = listOf(
+            "close (chave geral)" to { scanner.close(context) },
+            "disableFunction 2D" to { scanner.disableFunction(context, FUNCTION_2D) },
+            "disableFunction UHF" to { scanner.disableFunction(context, FUNCTION_UHF) },
+            "setScanKey barcode" to { scanner.setScanKey(context, 0, intArrayOf(1, 1, 1, 1)) },
+            "setScanKey UHF" to { scanner.setScanKey(context, 3, intArrayOf(1, 1)) }
+        )
+        for ((name, step) in steps) {
+            try {
+                step()
+                Log.i(TAG, "Keyboard emulator: $name OK")
+            } catch (e: Throwable) {
+                Log.w(TAG, "Keyboard emulator: $name falhou: ${e.message}")
+            }
         }
     }
 }

@@ -65,11 +65,13 @@ Leitores com `capabilities.usesKeyEventTrigger` recebem o gatilho como `KeyEvent
 
 ```kotlin
 override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
-    if (manager.onTriggerPressed()) true else super.onKeyDown(keyCode, event)
+    if (manager.onKeyDown(keyCode)) true else super.onKeyDown(keyCode, event)
 
 override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean =
-    if (manager.onTriggerReleased()) true else super.onKeyUp(keyCode, event)
+    if (manager.onKeyUp(keyCode)) true else super.onKeyUp(keyCode, event)
 ```
+
+`onKeyDown/onKeyUp(keyCode)` só reagem às teclas de `capabilities.triggerKeyCodes` do leitor ativo e logam o `keyCode` recebido (tag `ReaderManager`).
 
 ### 5. Bluetooth LE
 

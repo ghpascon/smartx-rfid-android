@@ -189,11 +189,15 @@ Se `reader.capabilities.usesKeyEventTrigger` for `true`, encaminhe as teclas fí
 
 ```kotlin
 override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
-    if (manager.onTriggerPressed()) true else super.onKeyDown(keyCode, event)
+    if (manager.onKeyDown(keyCode)) true else super.onKeyDown(keyCode, event)
 
 override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean =
-    if (manager.onTriggerReleased()) true else super.onKeyUp(keyCode, event)
+    if (manager.onKeyUp(keyCode)) true else super.onKeyUp(keyCode, event)
 ```
+
+`onKeyDown/onKeyUp(keyCode)` só reagem às teclas declaradas em `reader.capabilities.triggerKeyCodes`
+(ex.: P80 = 291, 293, 294, 295) e registram o `keyCode` recebido no Logcat (tag `ReaderManager`).
+Para tratar qualquer tecla como gatilho, use `manager.onTriggerPressed()` / `onTriggerReleased()`.
 
 ## 8. Configuração e filtros
 

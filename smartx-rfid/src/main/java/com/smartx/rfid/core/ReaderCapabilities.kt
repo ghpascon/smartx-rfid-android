@@ -16,5 +16,12 @@ data class ReaderCapabilities(
      * `ReaderManager.onTriggerPressed/Released`). Quando false, o SDK/protocolo do leitor
      * notifica o gatilho por conta própria.
      */
-    val usesKeyEventTrigger: Boolean = false
+    val usesKeyEventTrigger: Boolean = false,
+
+    /**
+     * Keycodes que representam o gatilho físico quando [usesKeyEventTrigger] é true.
+     * Vazio = qualquer tecla é tratada como gatilho (comportamento de onTriggerPressed/Released).
+     * Usado por `ReaderManager.onKeyDown/onKeyUp`, que ignoram as demais teclas.
+     */
+    val triggerKeyCodes: Set<Int> = emptySet()
 )

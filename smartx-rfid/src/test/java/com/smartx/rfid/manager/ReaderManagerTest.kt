@@ -4,6 +4,7 @@ import android.content.Context
 import com.smartx.rfid.FakeReader
 import com.smartx.rfid.core.ConnectionOption
 import com.smartx.rfid.core.ConnectionRequest
+import com.smartx.rfid.core.ReaderCapabilities
 import com.smartx.rfid.core.ReaderConfig
 import com.smartx.rfid.core.ReaderConnectionState
 import com.smartx.rfid.core.RfidTag
@@ -107,6 +108,38 @@ class ReaderManagerTest {
         assertTrue(manager.state.value.isInventorying)
         manager.onTriggerReleased()
         assertFalse(manager.state.value.isInventorying)
+    }
+
+    @Test
+    fun `onKeyDown and onKeyUp only react to the reader trigger keycodes`() = runTest {
+        val reader = FakeReader(
+            capabilities = ReaderCapabilities(
+                usesKeyEventTrigger = true,
+                triggerKeyCodes = setOf(291, 293)
+            )
+        )
+        val manager = ReaderManager(context, listOf(reader), backgroundScope)
+        manager.connect(reader, retryDelayMs = 0)
+
+        assertFalse(manager.onKeyDown(24)) // volume: ignorada
+        assertFalse(manager.state.value.isInventorying)
+
+        assertTrue(manager.onKeyDown(291))
+        assertTrue(manager.state.value.isInventorying)
+        assertTrue(manager.onKeyDown(291)) // repetição enquanto segura
+        assertTrue(manager.state.value.isInventorying)
+
+        assertFalse(manager.onKeyUp(24))
+        assertTrue(manager.state.value.isInventorying)
+        assertTrue(manager.onKeyUp(291))
+        assertFalse(manager.state.value.isInventorying)
+    }
+
+    @Test
+    fun `P80 reader declares the Chainway scan keys as trigger`() {
+        val caps = com.smartx.rfid.devices.p80.P80Reader().capabilities
+        assertTrue(caps.usesKeyEventTrigger)
+        assertTrue(caps.triggerKeyCodes.containsAll(listOf(291, 293, 294, 295)))
     }
 
     @Test

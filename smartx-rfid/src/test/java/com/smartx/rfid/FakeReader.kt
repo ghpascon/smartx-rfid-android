@@ -2,6 +2,7 @@ package com.smartx.rfid
 
 import android.content.Context
 import com.smartx.rfid.core.IRfidReader
+import com.smartx.rfid.core.ReaderCapabilities
 import com.smartx.rfid.core.ReaderConfig
 import com.smartx.rfid.core.ReaderConnectionState
 import com.smartx.rfid.core.RfidTag
@@ -17,7 +18,8 @@ class FakeReader(
     override val displayName: String = "Fake Reader",
     override val isBle: Boolean = false,
     /** Quantas chamadas a connect() devem falhar antes de conectar. */
-    var failuresBeforeSuccess: Int = 0
+    var failuresBeforeSuccess: Int = 0,
+    override val capabilities: ReaderCapabilities = ReaderCapabilities()
 ) : IRfidReader {
 
     private val _state = MutableStateFlow(ReaderConnectionState.DISCONNECTED)

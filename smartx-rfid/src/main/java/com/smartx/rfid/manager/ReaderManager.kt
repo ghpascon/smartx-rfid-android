@@ -205,7 +205,9 @@ class ReaderManager(
 
     /** Gatilho físico pressionado (repasse de KeyEvent ou callback). */
     fun onTriggerPressed(): Boolean {
-        val reader = activeReader ?: return false
+        val reader = activeReader
+        Log.d(TAG, "onTriggerPressed leitor=${reader?.readerId}")
+        if (reader == null) return false
         val handled = reader.onTriggerPressed()
         _state.update { it.copy(isInventorying = reader.isInventorying()) }
         return handled
@@ -217,6 +219,30 @@ class ReaderManager(
         val handled = reader.onTriggerReleased()
         _state.update { it.copy(isInventorying = reader.isInventorying()) }
         return handled
+    }
+
+    /**
+     * Repasse direto do `Activity.onKeyDown`: só reage às teclas de gatilho do leitor ativo
+     * (`capabilities.triggerKeyCodes`; vazio = qualquer tecla). Retorna true se consumiu a tecla.
+     * O teclado repete onKeyDown enquanto o botão é mantido; isso é seguro (início é idempotente).
+     */
+    fun onKeyDown(keyCode: Int): Boolean {
+        val reader = activeReader ?: return false
+        val caps = reader.capabilities
+        Log.d(TAG, "onKeyDown keyCode=$keyCode leitor=${reader.readerId}")
+        if (!caps.usesKeyEventTrigger) return false
+        if (caps.triggerKeyCodes.isNotEmpty() && keyCode !in caps.triggerKeyCodes) return false
+        return onTriggerPressed()
+    }
+
+    /** Repasse direto do `Activity.onKeyUp`; ver [onKeyDown]. */
+    fun onKeyUp(keyCode: Int): Boolean {
+        val reader = activeReader ?: return false
+        val caps = reader.capabilities
+        Log.d(TAG, "onKeyUp keyCode=$keyCode leitor=${reader.readerId}")
+        if (!caps.usesKeyEventTrigger) return false
+        if (caps.triggerKeyCodes.isNotEmpty() && keyCode !in caps.triggerKeyCodes) return false
+        return onTriggerReleased()
     }
 
     // -------------------------------------------------------------------------

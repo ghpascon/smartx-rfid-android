@@ -5,6 +5,7 @@ import android.util.Log
 import com.rscja.deviceapi.RFIDWithUHFUART
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.interfaces.IUHFInventoryCallback
+import com.rscja.scanner.utility.ScannerUtility
 import com.smartx.rfid.core.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -39,6 +40,10 @@ class P80Reader : IRfidReader {
     override suspend fun connect(context: Context): Boolean = withContext(Dispatchers.IO) {
         _connectionState.value = ReaderConnectionState.CONNECTING
         return@withContext try {
+            // O keyboard emulator do sistema consome as teclas de scan (barcode/UHF) antes
+            // da Activity. Neutraliza-as para que o gatilho chegue como KeyEvent ao app.
+            releaseScanKeys(context)
+
             val instance = RFIDWithUHFUART.getInstance()
             val ok = instance.init(context)
             if (ok) {
@@ -159,5 +164,19 @@ class P80Reader : IRfidReader {
     override fun onTriggerReleased(): Boolean {
         if (_isInventorying) stopInventory()
         return true
+    }
+
+    /**
+     * Remove as teclas de scan do keyboard emulator (tipo 0 = barcode, 3 = UHF), usando o
+     * keycode 1 (sem função), para que o botão físico seja tratado só pelo app.
+     */
+    private fun releaseScanKeys(context: Context) {
+        try {
+            val scanner = ScannerUtility.getScannerInerface()
+            scanner.setScanKey(context, 0, intArrayOf(1, 1, 1, 1))
+            scanner.setScanKey(context, 3, intArrayOf(1, 1))
+        } catch (e: Throwable) {
+            Log.w(TAG, "Não foi possível liberar as teclas de scan: ${e.message}")
+        }
     }
 }

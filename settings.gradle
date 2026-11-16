@@ -32,3 +32,5 @@ dependencyResolutionManagement {
 rootProject.name = "smartx-rfid-android"
 include ':smartx-rfid'
 include ':vendor-sdks'
+// Apps de teste de leitores (não fazem parte da biblioteca publicada).
+include ':reader_tests:p80'

@@ -1,0 +1,38 @@
+// App de teste do leitor Chainway P80: lista os leitores, conecta no P80 e mostra
+// teclas, início/parada de leitura e tags lidas.
+//
+//   ./gradlew :reader_tests:p80:installDebug
+
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+def cfg = new groovy.json.JsonSlurper().parse(rootProject.file('config.json'))
+
+android {
+    namespace 'com.smartx.rfid.readertests.p80'
+    compileSdk cfg.library.compileSdk
+
+    defaultConfig {
+        applicationId 'com.smartx.rfid.readertests.p80'
+        minSdk 29 // o AAR da Zebra exige 29+
+        targetSdk cfg.library.compileSdk
+        versionCode 1
+        versionName '1.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    // Usa a biblioteca do próprio repositório (sempre o código atual, sem publicar).
+    implementation project(':smartx-rfid')
+}

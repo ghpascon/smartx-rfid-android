@@ -219,6 +219,44 @@ class Xtrack(baseUrl: String) {
         return parseResponseObject(responseBody)
     }
 
+    /**
+     * Cadastra um modelo de item. `name` (IDCODE), `description` e `category` (CATEGORY_NAME) são
+     * obrigatórios; `extra` aceita os demais campos (GS1REF, CONTAINER, USRDATA1..9, IDETYPE1..4,
+     * IDECODE1..4, IMAGEFILE, DEPARTMENT) e campos não informados são enviados vazios.
+     */
+    suspend fun registerItemModel(
+        name: String,
+        description: String,
+        category: String,
+        extra: Map<String, String> = emptyMap()
+    ): Map<String, Any?> {
+        require(name.isNotBlank()) { "name (IDCODE) é obrigatório" }
+        require(description.isNotBlank()) { "description é obrigatório" }
+        require(category.isNotBlank()) { "category (CATEGORY_NAME) é obrigatório" }
+
+        val optionalFields = listOf(
+            "GS1REF", "CONTAINER", "USRDATA1", "USRDATA2", "USRDATA3", "USRDATA4", "USRDATA5",
+            "USRDATA6", "USRDATA7", "USRDATA8", "USRDATA9", "IDETYPE1", "IDECODE1", "IDETYPE2",
+            "IDECODE2", "IDETYPE3", "IDECODE3", "IDETYPE4", "IDECODE4", "IMAGEFILE", "DEPARTMENT"
+        )
+        val values = extra.entries.associate { (key, value) -> key.uppercase(Locale.ROOT) to value }
+        val itemModel = JSONObject()
+            .put("IDCODE", name.trim())
+            .put("DESCRIPTION", description.trim())
+            .put("CATEGORY_NAME", category.trim())
+        optionalFields.forEach { field ->
+            itemModel.put(field, values[field] ?: if (field == "CONTAINER") "0" else "")
+        }
+
+        val responseBody = executePost(
+            JSONObject()
+                .put("command", "ImportItemModel")
+                .put("terminal", "ERP")
+                .put("data", JSONObject().put("itemmodel", itemModel))
+        )
+        return parseResponseObject(responseBody)
+    }
+
     /** Altera a condição dos objetos identificados por IDCODE e retorna a resposta (ex.: status). */
     suspend fun moveCondition(idCodes: List<String>, condition: String): Map<String, Any?> {
         val objects = JSONArray().apply {
